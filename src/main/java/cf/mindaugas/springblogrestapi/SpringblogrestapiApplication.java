@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 public class SpringblogrestapiApplication {
 
-    List<BlogPost> blogPosts = new ArrayList<>() {{
+    List<BlogPost> blogPosts = new ArrayList<BlogPost>() {{
         add(new BlogPost(1, "Bp1", "Text 1"));
         add(new BlogPost(2, "Bp2", "Text 2"));
         add(new BlogPost(3, "Bp3", "Text 3"));
