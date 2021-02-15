@@ -1,60 +1,74 @@
 package cf.mindaugas.springblogrestapi;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Repository;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
+import javax.persistence.*;
 import java.util.List;
 
 @SpringBootApplication
-@RestController
 public class SpringblogrestapiApplication {
-
-    List<BlogPost> blogPosts = new ArrayList<BlogPost>() {{
-        add(new BlogPost(1, "Bp1", "Text 1"));
-        add(new BlogPost(2, "Bp2", "Text 2"));
-        add(new BlogPost(3, "Bp3", "Text 3"));
-        add(new BlogPost(4, "Bp4", "Text 4"));
-    }};
-
     public static void main(String[] args) {
         SpringApplication.run(SpringblogrestapiApplication.class, args);
     }
+}
 
-    @GetMapping("/")
-    public String index() {
-        return "<h1>Hello World</h1>";
-    }
-
-    @GetMapping("/blogposts")
-    public List<BlogPost> blogposts() {
-        return blogPosts;
-    }
-
-    @DeleteMapping("/blogposts/{id}")
-    public ResponseEntity<String> deleteItem(@PathVariable Integer id) {
-        BlogPost itemToDelete =blogPosts.stream()
-                .filter(blogPost -> blogPost.getId()
-                .equals(id)).findAny().orElseThrow(() ->
-                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
-
-        blogPosts.remove(itemToDelete);
-        return new ResponseEntity<String>(HttpStatus.NO_CONTENT); // 204
+@Controller
+@CrossOrigin(origins = "*", maxAge = 3600)
+class ForwardingController {
+    @RequestMapping("/{path:[^\\.]+}/**")
+    public String forward() {
+        return "forward:/";
     }
 }
 
+@RestController
+@RequestMapping("/blogposts")
+@CrossOrigin(origins = "*", maxAge = 3600)
+class BlogPostsController {
+
+    @Autowired
+    private BlogPostRepository blogPostRepository;
+
+    @GetMapping(value = "")
+    public List<BlogPost> getAllBlogPosts() {
+        return blogPostRepository.findAll();
+    }
+
+    @GetMapping(value = "/{id}")
+    public BlogPost getBlogPostById(@PathVariable Long id) {
+        return blogPostRepository.getOne(id);
+        // TODO :: 404 if not found
+    }
+
+    @DeleteMapping(value = "/{id}")
+    public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
+        blogPostRepository.delete(blogPostRepository.getOne(id));
+        return new ResponseEntity<Void>(HttpStatus.NO_CONTENT); // 204
+    }
+}
+
+@Repository
+interface BlogPostRepository extends JpaRepository<BlogPost, Long> { }
+
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
+@Entity
+@Table(name = "blogposts")
 class BlogPost {
-    private Integer id;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String title;
     private String text;
 }
